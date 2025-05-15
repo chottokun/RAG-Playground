@@ -44,14 +44,11 @@ README.md         # 本ファイル
 
 ## 共通の使い方
 1. `DeepRag/config.ini` でPDFパスやモデル名、ベクトルストアディレクトリなどを設定します。
-2. 各ディレクトリでStreamlitアプリを起動します。
-   ```bash
-   cd DeepRag && streamlit run deeprag.py
-   # または
-   cd RRARag && streamlit run rrarag.py
-   ```
+2. Streamlitアプリを起動します。
 3. 初回は「Index PDF」ボタンでインデックスを作成してください。
 4. 質問を入力し、各種RAGの挙動を体験できます。
+
+詳細は `DeepRag/README.md` や `RRARag/README.md` を参照してください。
 
 ---
 
