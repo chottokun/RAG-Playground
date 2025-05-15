@@ -46,7 +46,7 @@ flowchart TD
     C --> D
     D --> E[質問入力]
     E --> F{Askボタン押下?}
-    F -- Yes --> G[ベクトル検索 (TOP_K件)]
+    F -- Yes --> G["ベクトル検索 (TOP_K件)"]
     G --> H[RRA再ランキング]
     H --> I[上位FINAL_K件を表示]
     I --> J[LLMで回答生成]
