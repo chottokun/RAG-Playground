@@ -1,6 +1,6 @@
 # RAGを実験的に実装
 
-本リポジトリは、PDF文書を知識ベースとして活用し、検索拡張生成（RAG）の論文を参考に実装を試験的に行っています。論文に記載の実装を忠実に再現したり、評価するものではありません。
+本リポジトリは、PDF文書を知識ベースとして活用し、検索拡張生成（RAG）の論文を参考に実装の実験を試験的に行っています。実装の学習目的であり、論文に記載の実装を忠実に再現したり、評価するものではありません。各論文に基づいた実装は論文や著者が直接公開しているソースコードを参照してください。
 
 ---
 
@@ -37,7 +37,7 @@ README.md         # 本ファイル
 - 詳細・使い方・フローは `DeepRag/README.md` を参照してください。
 
 ### RRARag
-- Rational Retrieval Acts (RRA) アルゴリズムを用いて、ベクトル検索後の文書を再ランキングし、より高精度な検索拡張生成を実現するデモです。
+- Rational Retrieval Acts (RRA) アルゴリズムを用いて、ベクトル検索後の文書を再ランキングし、より高精度な検索拡張生成を実現する実装を簡略的に行いました。
 - 詳細・使い方・フローは `RRARag/README.md` を参照してください。
 
 ---
@@ -63,6 +63,9 @@ README.md         # 本ファイル
 
 ---
 
-## 参考
-- 本リポジトリは技術検証・デモ用途を想定しています。
+## 情報/Infomation
+- 本リポジトリは実装技術勉強を個人で行っているものです。論文の検証や実装を追究するためではありません。
+- This repository is used for personal study of implementation techniques. It is not intended for verifying or pursuing the implementation of research papers.
 
+##
+Thank you for conducting various research studies and publishing your papers.
