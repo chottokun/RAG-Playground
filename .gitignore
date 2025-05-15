@@ -3,6 +3,7 @@
 
 # DB
 vectorstore/
+vectorstore_dynamicrag/
 # Local configuration files
 *.db
 
