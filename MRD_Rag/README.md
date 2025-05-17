@@ -33,7 +33,6 @@ Han Wang, Archiki Prasad, Elias Stengel-Eskin, Mohit Bansal
 MRD_Rag/
 ├── mrdrag.py         # メインStreamlitアプリ・RAGコア
 ├── README.md         # このファイル
-├── 2504.13079v1.pdf  # デモ用PDF（例）
 ```
 - 共通部品（`model_loader/`, `components/`）や設定ファイル（`config.ini`）はプロジェクトルートまたはDeepRag配下を参照
 
@@ -55,6 +54,7 @@ MRD_Rag/
     - `[vectorstore]` 保存ディレクトリ
     - `[document]` PDFファイルパス
     - `[mrdrag]` NUM_AGENTS, MAX_ROUNDS など
+設定ファイルの場所は変更予定
 
 2. PDFファイルを `PDF_PATH` で指定した場所に配置
 
