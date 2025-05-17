@@ -1,6 +1,6 @@
 import streamlit as st
 import configparser
-from langchain_ollama import OllamaLLM
+# from langchain_ollama import OllamaLLM  # ← 削除
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
@@ -8,6 +8,13 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from typing import List, Tuple, Any
+
+import os
+import torch
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../model_loader')))
+from load_llm import load_llm
 
 # 
 import os
@@ -55,21 +62,21 @@ class DeepRAG:
             if depth >= max_depth:
                 return path
             # Generate subquery or TERMINATE
-            chain = LLMChain(llm=self.llm, prompt=self.decomp_prompt)
-            sub = chain.run(question=q, history=" ; ".join(p['subquery'] for p in path)).strip()
+            chain = self.decomp_prompt | self.llm
+            sub = chain.invoke({"question": q, "history": " ; ".join(p['subquery'] for p in path)}).strip()
             if sub.upper() == "TERMINATE":
                 return path
             # Atomic decision: retrieve
             docs = self.vectorstore.similarity_search(sub, k=3)
             context = "\n\n".join(d.page_content for d in docs)
-            ans_chain = LLMChain(llm=self.llm, prompt=self.answer_prompt)
-            intermediate = ans_chain.run(query=sub, context=context)
+            ans_chain = self.answer_prompt | self.llm
+            intermediate = ans_chain.invoke({"query": sub, "context": context})
             new_step = {"subquery": sub, "retrieved": True, "answer": intermediate}
             return recurse(sub, depth+1, path + [new_step])
 
         final_path = recurse(question, 0, [])
         final_context = "\n\n".join(step['answer'] for step in final_path)
-        final_answer = self.llm(f"Based on above, answer: {question}\nContext: {final_context}")
+        final_answer = self.llm.invoke(f"Based on above, answer: {question}\nContext: {final_context}")
         return final_answer, final_path
 
 # ---------- Utility: Load and index PDF ----------
@@ -94,7 +101,13 @@ def main():
             store = load_vectorstore(PDF_PATH)
             st.success("Indexing completed!")
     store = Chroma(persist_directory=PERSIST_DIRECTORY, embedding_function=HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL))
-    llm = OllamaLLM(model=LLM_MODEL, base_url=OLLAMA_BASE_URL, temperature=0)
+    # LLMのロードをload_llm.py経由に変更
+    llm = load_llm(
+        provider="ollama",
+        model=LLM_MODEL,
+        base_url=OLLAMA_BASE_URL,
+        temperature=0
+    )
     dr = DeepRAG(llm, store)
 
     question = st.text_input("Enter your question:")
