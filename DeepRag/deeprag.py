@@ -10,16 +10,19 @@ from langchain.prompts import PromptTemplate
 from typing import List, Tuple, Any
 
 import os
-import torch
 import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../model_loader')))
-from load_llm import load_llm
+# Add the project root to sys.path to allow importing from components and model_loader
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(project_root)
 
-# 
+from model_loader.load_llm import load_llm
+from components.pdf_processor import PDFProcessor # Import the new class
+
+# The following lines related to torch.classes seem to be causing an issue
+# and are not directly related to the core functionality of this script.
+# Commenting them out to see if it resolves the import error.
 import os
 import torch
-
 torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)]
 
 # ---------- Configurations ----------
@@ -29,7 +32,7 @@ OLLAMA_BASE_URL = config.get('ollama', 'BASE_URL', fallback='http://localhost:11
 EMBEDDING_MODEL = config.get('embedding', 'MODEL', fallback='intfloat/multilingual-e5-small')
 LLM_MODEL = config.get('llm', 'MODEL', fallback='gemma3:4b-it-qat')
 PERSIST_DIRECTORY = config.get('vectorstore', 'DIRECTORY', fallback='./vectorstore')
-PDF_PATH = config.get('pdf', 'PATH', fallback='DeepRag/2502.01142v1.pdf')
+# PDF_PATH = config.get('pdf', 'PATH', fallback='DeepRag/2502.01142v1.pdf') # Removed as we now use a directory
 
 # ---------- DeepRAG Components ----------
 
@@ -79,28 +82,31 @@ class DeepRAG:
         final_answer = self.llm.invoke(f"Based on above, answer: {question}\nContext: {final_context}")
         return final_answer, final_path
 
-# ---------- Utility: Load and index PDF ----------
-
-def load_vectorstore(pdf_path: str) -> Chroma:
-    loader = PyPDFLoader(pdf_path)
-    docs = loader.load()
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-    chunks = splitter.split_documents(docs)
-    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
-    store = Chroma.from_documents(chunks, embeddings, persist_directory=PERSIST_DIRECTORY)
-    return store
-
 # ---------- Streamlit UI ----------
 
 def main():
     st.title("DeepRAG: Step-by-Step RAG Demo")
     st.info(f"Ollama BASE_URL: {OLLAMA_BASE_URL}")
     debug_mode = st.checkbox("DEBUGモード（検索コンテキスト表示）")
+
+    # Use the new PDFProcessor class
+    processor = PDFProcessor()
+
     if st.button("Index PDF"):
-        with st.spinner("Indexing document... This may take a minute."):
-            store = load_vectorstore(PDF_PATH)
-            st.success("Indexing completed!")
-    store = Chroma(persist_directory=PERSIST_DIRECTORY, embedding_function=HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL))
+        with st.spinner("Indexing documents... This may take a minute."):
+            store = processor.index_pdfs()
+            if store:
+                st.success("Indexing completed!")
+            else:
+                st.error("Indexing failed. Check console for details.")
+
+    # Load the vectorstore using the processor
+    store = processor.load_vectorstore()
+
+    if store is None:
+        st.warning("Vectorstore not found. Please index PDFs first.")
+        return # Exit main if vectorstore is not loaded
+
     # LLMのロードをload_llm.py経由に変更
     llm = load_llm(
         provider="ollama",
