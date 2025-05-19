@@ -13,6 +13,7 @@ pypdf = "*"
 langchain-ollama = "*"
 langchain-chroma = "*"
 langchain-huggingface = "*"
+langgraph = "*"
 
 [dev-packages]
 

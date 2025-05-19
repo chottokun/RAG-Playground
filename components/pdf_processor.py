@@ -4,7 +4,7 @@ from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from typing import List
+from typing import List, Optional
 
 class PDFProcessor:
     def __init__(self, config_path='config.ini'):
@@ -15,7 +15,7 @@ class PDFProcessor:
         self.persist_directory = self.config.get('vectorstore', 'DIRECTORY', fallback='./vectorstore')
         self.embeddings = HuggingFaceEmbeddings(model_name=self.embedding_model_name)
 
-    def index_pdfs(self) -> Chroma:
+    def index_pdfs(self) -> Optional[Chroma]:
         """
         Loads all PDFs from the configured directory, splits them,
         embeds them, and saves them to the vectorstore.
@@ -51,7 +51,7 @@ class PDFProcessor:
         print("Vectorstore created.")
         return store
 
-    def load_vectorstore(self) -> Chroma:
+    def load_vectorstore(self) -> Optional[Chroma]:
         """
         Loads the existing vectorstore from the configured directory.
         """
