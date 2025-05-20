@@ -4,6 +4,8 @@
 # DB
 vectorstore/
 vectorstore_dynamicrag/
+vectorstore_deepsteprag/
+vectorstore_modular/
 # Local configuration files
 *.db
 

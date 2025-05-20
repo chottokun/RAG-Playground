@@ -11,7 +11,7 @@ class PDFProcessor:
         self.config = configparser.ConfigParser()
         self.config.read(config_path)
         self.pdf_directory = self.config.get('pdf', 'DIRECTORY', fallback='./pdfs') # Assuming a new DIRECTORY option in config
-        self.embedding_model_name = self.config.get('embedding', 'MODEL', fallback='intfloat/multilingual-e5-small')
+        self.embedding_model_name = self.config.get('embedding', 'MODEL', fallback='intfloat/multilingual-e5-small').strip()
         self.persist_directory = self.config.get('vectorstore', 'DIRECTORY', fallback='./vectorstore')
         self.embeddings = HuggingFaceEmbeddings(model_name=self.embedding_model_name)
 
