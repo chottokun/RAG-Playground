@@ -1,8 +1,8 @@
-# AgenticRag
+# AgenticRagからヒントを得た
 
 ## 概要
 
-AgenticRagは、LangGraphの最新APIと共通モジュール（components/pdf_processor, model_loader/load_llm）を活用したエージェント型RAG（Retrieval Augmented Generation）システムです。PDFから知識ベースを自動構築し、ユーザーの質問に対して段階的な検索・評価・クエリリファイン・最終回答生成を行います。
+本Ragは、LangGraphの最新APIと共通モジュール（components/pdf_processor, model_loader/load_llm）を活用したエージェント型RAG（Retrieval Augmented Generation）システムです。PDFから知識ベースを自動構築し、ユーザーの質問に対して段階的な検索・評価・クエリリファイン・最終回答生成を行います。
 
 ---
 ## 参考文献と本プログラムの狙い
@@ -11,12 +11,12 @@ AGENTIC RAG](https://arxiv.org/abs/2501.09136)
 
 Aditi Singh, Abul Ehtesham, Saket Kumar, Tala Talaei Khoei
 
-本プログラムは上記論文のアイデア・アルゴリズムを参考に実装されています。しかしながら、理論の評価や利用を目的としたものではなく、実装練習として一部の機能を実装しています。
+本プログラムは上記論文のアイデア・アルゴリズムを参考に実装されています。しかしながら、参考であって、内容を網羅しいていません。また、理論の評価や利用を目的としたものではなく、実装練習として一部の機能を実装しています。
 
 ---
 
 ## 特徴
-- 設定ファイル駆動：`AgenticRag/config.ini` でLLMやベクトルDB、PDFパス等を一元管理
+- 設定ファイル：`AgenticRag/config.ini` でLLMやベクトルDB、PDFパス等を一元管理
 - 共通モジュール利用：PDF処理・ベクトルDB構築・LLMロードを再利用可能なモジュールで実装
 - Streamlit UI：Webブラウザから簡単に質問・回答が可能
 
@@ -113,5 +113,4 @@ vectorstore/
 - LLMプロバイダやモデルによっては、別途APIキーやローカルサーバーの起動が必要です。
 - ベクトルDBやPDFのパスはconfig.iniで必ず正しく指定してください。
 
----
 
