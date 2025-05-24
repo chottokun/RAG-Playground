@@ -8,6 +8,12 @@ from typing import List # Import List
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(project_root)
 
+# 
+import torch
+torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)]
+
+
+
 from components.pdf_processor import PDFProcessor
 from ModularRAG.orchestrator import RAGOrchestrator # Import RAGOrchestrator
 from ModularRAG.shared_types import HistoryItem # Import HistoryItem
@@ -91,9 +97,16 @@ def main():
             st.warning("Vector store not found. Please index PDFs first.")
         else:
             st.info("Running RAG process...")
+            progress_area = st.empty()  # 進捗表示用のエリア
+            progress_msgs = []
+            def st_progress(msg):
+                print(msg)
+                progress_msgs.append(msg)
+                # 最新20件だけ表示（多すぎる場合の対策）
+                progress_area.markdown('\n- '.join(progress_msgs[-20:]))
             try:
-                # Run the orchestrator with the current question and history
-                final_answer = orchestrator.run(question_input, st.session_state.history)
+                # Run the orchestrator with the current question and history, passing st_progress
+                final_answer = orchestrator.run(question_input, st.session_state.history, st_callback=st_progress)
 
                 st.subheader("Final Answer")
                 st.write(final_answer)

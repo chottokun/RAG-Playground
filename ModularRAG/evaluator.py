@@ -27,7 +27,8 @@ Available components and their general purpose:
 - query_decomposition: Breaks down complex queries into simpler sub-queries. Useful for multi-faceted questions.
 - retrieval: Searches the vector database for relevant documents based on a query. Requires 'query' and 'k' (number of results).
 - evaluation: Assesses the relevance of retrieved documents to the original question.
-- refinement: Generates a refined query based on initial retrieval and evaluation results.
+- refinement: Generates a refined query based on initial retrieval and evaluation results. Sets 'refined_query' in state.
+- reflection: Evaluates the sufficiency of the current answer. Sets 'reflection_result' in state as 'sufficient' or 'insufficient'.
 - multi_agent_debate: Uses multiple agents to debate and synthesize information from documents. Good for complex or ambiguous topics. Requires 'documents', 'num_agents', 'max_rounds'.
 - aggregation: Combines outputs from multiple sources (e.g., debate agents) into a final answer. Requires 'inputs'.
 - reranking: Re-orders retrieved documents based on specific criteria (e.g., RRA, dynamic reranking). Requires 'query', 'documents'.
@@ -36,8 +37,9 @@ Available components and their general purpose:
 Consider the following:
 - If the query is simple and direct, a simple retrieval and synthesis might suffice.
 - If the query is complex or asks for comparison/synthesis of multiple points, query decomposition and/or multi-agent debate might be beneficial.
-- If initial retrieval seems insufficient, evaluation and refinement steps can improve results.
+- If initial retrieval seems insufficient, evaluation, reflection, and refinement steps can improve results.
 - If documents might contain conflicting information, multi-agent debate can help synthesize a robust answer.
+- If the answer is insufficient, use reflection and refinement to improve the query and repeat the process (up to a loop limit).
 
 Provide your decision in JSON format, including the overall 'decision' (a brief description), 'reasoning' for your choice, and a list of 'components' to execute in order, with their required 'params'. If a component doesn't require specific parameters beyond its input from the previous step, an empty 'params' object is fine.
 
@@ -48,20 +50,21 @@ Example Output:
   "reasoning": "The query is a simple fact lookup.",
   "components": [
     {{"name": "retrieval", "params": {{"k": 5}}}},
-    {{"name": "synthesis", "params": {}}}
+    {{"name": "synthesis", "params": {{}}}},
+    {{"name": "reflection", "params": {{}}}}
   ]
 }}
 ```
-Example Output for a complex query:
+Example Output for a complex query with refinement:
 ```json
 {{
-  "decision": "decompose_retrieve_debate_aggregate",
-  "reasoning": "Complex query requiring multiple steps and synthesis of different perspectives.",
+  "decision": "retrieve_reflect_refine",
+  "reasoning": "Initial answer may be insufficient, so use reflection and refinement.",
   "components": [
-    {{"name": "query_decomposition", "params": {}}},
     {{"name": "retrieval", "params": {{"k": 10}}}},
-    {{"name": "multi_agent_debate", "params": {{"num_agents": 4, "max_rounds": 2}}}},
-    {{"name": "aggregation", "params": {}}}
+    {{"name": "synthesis", "params": {{}}}},
+    {{"name": "reflection", "params": {{}}}},
+    {{"name": "refinement", "params": {{}}}}
   ]
 }}
 ```

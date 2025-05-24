@@ -1,6 +1,6 @@
 #
 *.pdf
-
+.clinerules
 # DB
 vectorstore/
 vectorstore_dynamicrag/
