@@ -10,10 +10,10 @@ sentence-transformers = "*"
 huggingface-hub = {extras = ["hf_xet"], version = "*"}
 chromadb = "*"
 pypdf = "*"
-langchain-ollama = "*"
 langchain-chroma = "*"
 langchain-huggingface = "*"
 langgraph = "*"
+langchain-ollama = "*"
 
 [dev-packages]
 

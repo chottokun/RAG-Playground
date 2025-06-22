@@ -3,23 +3,23 @@ import configparser
 import os
 import sys
 from typing import List # Import List
+import asyncio
+
+# Initialize asyncio event loop
+asyncio.set_event_loop(asyncio.new_event_loop())
 
 # Add the project root to sys.path to allow importing from components and ModularRAG
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(project_root)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) # Adjust path for RAG_plus
+sys.path.insert(0, project_root)
 
-# 
-# torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)]
-
-
-
-from components.pdf_processor import PDFProcessor
-from ModularRAG.orchestrator import RAGOrchestrator # Import RAGOrchestrator
-from ModularRAG.shared_types import HistoryItem # Import HistoryItem
+from RAG_plus.components.dual_corpus_builder import DualCorpusBuilder # Import DualCorpusBuilder
+from RAG_plus.orchestrator import RAGOrchestrator # Import RAGOrchestrator
+from RAG_plus.shared_types import HistoryItem # Import HistoryItem
 
 # --- Configuration Loading ---
+# RAG_plus/config.ini を明示的に利用
+config_path = os.path.join(os.path.dirname(__file__), 'config.ini')
 config = configparser.ConfigParser()
-config_path = 'ModularRAG/config.ini'
 if os.path.exists(config_path):
     config.read(config_path)
 else:
@@ -28,13 +28,13 @@ else:
 
 # --- Initialize Components (using Streamlit caching) ---
 @st.cache_resource
-def get_pdf_processor(config_path: str):
-    """Caches the PDFProcessor instance."""
+def get_dual_corpus_builder(_config: configparser.ConfigParser):
+    """Caches the DualCorpusBuilder instance."""
     try:
-        processor = PDFProcessor(config_path=config_path)
-        return processor
+        builder = DualCorpusBuilder(_config)
+        return builder
     except Exception as e:
-        st.error(f"Error initializing PDFProcessor: {e}")
+        st.error(f"Error initializing DualCorpusBuilder: {e}")
         return None
 
 @st.cache_resource
@@ -49,39 +49,42 @@ def get_rag_orchestrator(_config: configparser.ConfigParser, config_path: str):
 
 # --- Streamlit UI ---
 def main():
-    st.title("Modular RAG System Demo")
+    st.title("RAG+ System Demo") # Changed title
 
-    # Initialize PDF Processor and Orchestrator
-    processor = get_pdf_processor(config_path)
+    # Initialize Dual Corpus Builder and Orchestrator
+    builder = get_dual_corpus_builder(config)
     orchestrator = get_rag_orchestrator(config, config_path)
 
-    if processor is None or orchestrator is None:
+    if builder is None or orchestrator is None:
         st.warning("System components failed to initialize. Check configuration and dependencies.")
         return
 
     # PDF Indexing Section
-    st.sidebar.header("PDF Indexing")
-    st.sidebar.info(f"Vector store directory: {config.get('vectorstore', 'DIRECTORY', fallback='./vectorstore_modular')}")
+    st.sidebar.header("PDF Indexing for RAG+") # Changed header
+    st.sidebar.info(f"Knowledge Vector store directory: {config.get('vectorstore', 'KNOWLEDGE_DIRECTORY', fallback='./vectorstore_rag_plus_knowledge')}")
+    st.sidebar.info(f"Application Vector store directory: {config.get('vectorstore', 'APPLICATION_DIRECTORY', fallback='./vectorstore_rag_plus_application')}")
     st.sidebar.info(f"PDF path(s): {config.get('pdf', 'PATH', fallback='pdfs/')}")
 
-    if st.sidebar.button("Index PDF"):
-        with st.spinner("Indexing documents... This may take a minute."):
+    if st.sidebar.button("Index PDFs for RAG+"): # Changed button text
+        with st.spinner("Building dual corpus... This may take a minute."):
             try:
-                vectorstore = processor.index_pdfs()
-                if vectorstore:
-                    st.success("Indexing completed!")
+                success = builder.build_dual_corpus()
+                if success:
+                    st.success("Dual corpus building completed!")
                     # キャッシュクリアの直接的な方法がないため、ユーザーにリロードを促す
                     st.info("Please manually reload the page to refresh the vectorstore cache.")
                 else:
-                    st.warning("No PDF documents found or processed for indexing.")
+                    st.warning("No PDF documents found or processed for dual corpus building.")
             except Exception as e:
-                st.error(f"Error during indexing: {e}")
+                st.error(f"Error during dual corpus building: {e}")
                 import traceback
                 st.error(traceback.format_exc())
 
 
-    # Check if vectorstore exists before allowing RAG execution
-    vectorstore_exists = processor.load_vectorstore() is not None
+    # Check if vectorstores exist before allowing RAG execution
+    knowledge_store_exists = builder.load_knowledge_vectorstore() is not None
+    application_store_exists = builder.load_application_vectorstore() is not None
+    vectorstore_exists = knowledge_store_exists and application_store_exists
 
     # RAG Execution Section
     st.header("Ask a Question")

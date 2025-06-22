@@ -18,13 +18,6 @@ sys.path.append(project_root)
 from model_loader.load_llm import load_llm
 from components.pdf_processor import PDFProcessor # Import the new class
 
-# The following lines related to torch.classes seem to be causing an issue
-# and are not directly related to the core functionality of this script.
-# Commenting them out to see if it resolves the import error.
-import os
-import torch
-torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)]
-
 # ---------- Configurations ----------
 config = configparser.ConfigParser()
 config.read('config.ini')
