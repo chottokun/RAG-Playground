@@ -56,13 +56,12 @@ class RAGOrchestrator:
                     applications.append(app_docs[0].page_content)
         return "\n---\n".join(applications)
 
-    def run(self, question: str, history: List[Dict[str, Any]], st_callback=None) -> str:
-        """Runs the RAG+ pipeline."""
-
+    def run(self, question: str, history: List[Dict[str, Any]], st_callback=None) -> dict:
+        """Runs the RAG+ pipeline and also returns the evidence."""
         # 1. Knowledge Retrieval
         knowledge_retriever = self.knowledge_vectorstore.as_retriever(
             search_type="similarity",
-            search_kwargs={"k": 2, "filter": {"type": "knowledge"}}
+            search_kwargs={"k": 10, "filter": {"type": "knowledge"}}
         )
 
         # 2. RAG+ chain
@@ -92,6 +91,7 @@ class RAGOrchestrator:
             | {
                 "question": lambda x: x["question"],
                 "knowledge": lambda x: "\n---\n".join([doc.page_content for doc in x["knowledge"]]),
+                "knowledge_list": lambda x: [doc.page_content for doc in x["knowledge"]],
                 "application": lambda x: x["application"]
             }
             | prompt_template
@@ -100,5 +100,12 @@ class RAGOrchestrator:
         )
 
         # 3. Run the chain
+        # knowledge_retrieverで取得したドキュメントも返す
+        knowledge_docs = knowledge_retriever.invoke(question)
+        application_text = self.retrieve_applications(knowledge_docs)
         response = rag_plus_chain.invoke({"question": question})
-        return response
+        return {
+            "answer": response,
+            "knowledge": [doc.page_content for doc in knowledge_docs],
+            "application": application_text.split("\n---\n") if application_text else []
+        }

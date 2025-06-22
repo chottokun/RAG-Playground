@@ -72,7 +72,7 @@ class DualCorpusBuilder:
             pdf_path = os.path.join(self.pdf_path, pdf_file)
             loader = PyPDFLoader(pdf_path)
             documents = loader.load()
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=100)
             chunks = text_splitter.split_documents(documents)
 
             # --- Step 3: LLMベースの分類器を定義 ---

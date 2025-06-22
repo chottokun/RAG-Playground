@@ -26,6 +26,12 @@ else:
     st.error(f"Configuration file not found at {config_path}")
     st.stop()
 
+# --- Ensure vectorstore directories exist ---
+knowledge_dir = config.get('vectorstore', 'KNOWLEDGE_DIRECTORY', fallback='./vectorstore_rag_plus_knowledge')
+application_dir = config.get('vectorstore', 'APPLICATION_DIRECTORY', fallback='./vectorstore_rag_plus_application')
+os.makedirs(knowledge_dir, exist_ok=True)
+os.makedirs(application_dir, exist_ok=True)
+
 # --- Initialize Components (using Streamlit caching) ---
 @st.cache_resource
 def get_dual_corpus_builder(_config: configparser.ConfigParser):
@@ -108,13 +114,21 @@ def main():
                 progress_area.markdown('\n- '.join(progress_msgs[-20:]))
             try:
                 # Run the orchestrator with the current question and history, passing st_progress
-                final_answer = orchestrator.run(question_input, st.session_state.history, st_callback=st_progress)
+                result = orchestrator.run(question_input, st.session_state.history, st_callback=st_progress)
 
                 st.subheader("Final Answer")
-                st.write(final_answer)
+                st.write(result["answer"])
+
+                with st.expander("根拠（Knowledge）を表示"):
+                    for idx, k in enumerate(result["knowledge"], 1):
+                        st.markdown(f"**Knowledge {idx}:**\n{k}\n")
+
+                with st.expander("根拠（Application例）を表示"):
+                    for idx, a in enumerate(result["application"], 1):
+                        st.markdown(f"**Application {idx}:**\n{a}\n")
 
                 # Update history (optional)
-                # st.session_state.history.append({"query": question_input, "answer": final_answer})
+                # st.session_state.history.append({"query": question_input, "answer": result["answer"]})
 
             except Exception as e:
                 st.error(f"An error occurred during RAG execution: {e}")
