@@ -15,11 +15,6 @@ from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 import json
 
-#
-import os
-import torch
-torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)]
-
 # ---------- 設定 ----------
 config = configparser.ConfigParser()
 config.read(os.path.join(project_root, 'DeepRag', 'config.ini'))

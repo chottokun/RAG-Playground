@@ -7,9 +7,7 @@ import configparser
 from typing import List, Dict, Any, Optional
 import ast # Import ast for safer parsing
 
-import torch
-
-torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)]
+# import torch  # 削除
 
 
 

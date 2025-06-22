@@ -10,12 +10,6 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 
-import os
-import torch
-
-torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)]
-
-
 # ---------- Configurations ----------
 config = configparser.ConfigParser()
 config.read('config.ini')

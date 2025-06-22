@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit as st
 import configparser
 from langchain_ollama import OllamaLLM
 from langchain_chroma import Chroma
@@ -10,12 +9,6 @@ from langchain.prompts import PromptTemplate
 from collections import Counter, defaultdict
 from math import exp, log
 import os
-
-# 
-import os
-import torch
-
-torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)]
 
 # ---------- Configurations ----------
 config = configparser.ConfigParser()
