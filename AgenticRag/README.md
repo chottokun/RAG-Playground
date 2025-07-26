@@ -1,116 +1,122 @@
-# AgenticRagからヒントを得た
+# Agentic RAG Demo
 
-## 概要
+本アプリケーションは、LangGraphを用いて構築されたエージェント型RAG（Retrieval-Augmented Generation）のデモです。ユーザーの質問に対し、検索・評価・クエリ改善・再検索・回答生成という一連の思考プロセスをエージェント（ノード）の連携によって実行します。
 
-本Ragは、LangGraphの最新APIと共通モジュール（components/pdf_processor, model_loader/load_llm）を活用したエージェント型RAG（Retrieval Augmented Generation）システムです。PDFから知識ベースを自動構築し、ユーザーの質問に対して段階的な検索・評価・クエリリファイン・最終回答生成を行います。
-
----
-## 参考文献と本プログラムの狙い
-[AGENTIC RETRIEVAL-AUGMENTED GENERATION: A SURVEY ON
-AGENTIC RAG](https://arxiv.org/abs/2501.09136)
-
-Aditi Singh, Abul Ehtesham, Saket Kumar, Tala Talaei Khoei
-
-本プログラムは上記論文のアイデア・アルゴリズムを参考に実装されています。しかしながら、参考であって、内容を網羅しいていません。また、理論の評価や利用を目的としたものではなく、実装練習として一部の機能を実装しています。
-
----
+本実装は、[AGENTIC RETRIEVAL-AUGMENTED GENERATION](https://arxiv.org/abs/2501.09136)などのサーベイ論文で議論されているエージェント型RAGのコンセプトを参考に、モジュール性とテスト容易性を重視して構築されています。
 
 ## 特徴
-- 設定ファイル：`AgenticRag/config.ini` でLLMやベクトルDB、PDFパス等を一元管理
-- 共通モジュール利用：PDF処理・ベクトルDB構築・LLMロードを再利用可能なモジュールで実装
-- Streamlit UI：Webブラウザから簡単に質問・回答が可能
+- **LangGraphベースのフロー制御**: 各処理ステップをノードとして定義し、`StateGraph`で柔軟な実行フローを構築しています。
+- **モジュール化設計**: UI (`app.py`)、グラフ定義 (`graph_builder.py`)、ノード実装 (`nodes/`) が明確に分離されています。
+- **共通コンポーネント利用**: PDF処理やモデルロードは、リポジトリ共通の`shared_components`を利用しています。
+- **テストカバレッジ**: `tests/`ディレクトリに各ノードの単体テストが整備されており、各コンポーネントの動作が保証されています。
 
 ---
 
-## フロー
+## ファイル構成
+```
+AgenticRag/
+  ├── app.py              # UI (Streamlit)
+  ├── graph_builder.py    # LangGraphのStateGraphを構築するロジック
+  ├── nodes/              # グラフの各ノード（エージェント）の実装
+  │   ├── __init__.py
+  │   ├── retrieval.py
+  │   ├── evaluation.py
+  │   ├── refinement.py
+  │   └── synthesis.py
+  └── config.ini          # 設定ファイル
+```
+
+---
+
+## 処理フロー
 
 ```mermaid
 graph TD
-    A["ユーザー質問"] --> B["Retriever Node: ベクトルDB検索"]
-    B --> C["Evaluator Node: LLMで関連度評価"]
-    C --> D["Refiner Node: クエリリファイン"]
-    D --> E["Refined Retriever Node: 再検索"]
-    E --> F["Synthesizer Node: 最終回答生成"]
-    F --> G["回答表示"]
+    subgraph app.py (UI)
+        A[質問入力] --> B{実行ボタン};
+        B -- invoke --> C[graph.invoke(state)];
+        C -- result --> D[結果表示];
+    end
+
+    subgraph graph_builder.py
+        G["StateGraph定義"]
+        G --> N1["retriever_node"];
+        N1 --> N2["evaluator_node"];
+        N2 --> N3["refiner_node"];
+        N3 --> N4["refined_retriever_node"];
+        N4 --> N5["synthesizer_node"];
+    end
+
+    subgraph nodes
+        NODE1["retrieval.py"];
+        NODE2["evaluation.py"];
+        NODE3["refinement.py"];
+        NODE4["synthesis.py"];
+    end
+
+    C --> G;
+    N1 --> NODE1;
+    N2 --> NODE2;
+    N3 --> NODE3;
+    N5 --> NODE4;
 ```
-
-
-1. **Retriever Node**
-    - ユーザーの質問を受け取り、ベクトルDBから関連文書を検索
-2. **Evaluator Node**
-    - 検索結果の各文書について、LLMで関連度を1～5で評価し根拠を生成
-3. **Refiner Node**
-    - 質問と評価結果をもとに、より良い検索のためのリファインドクエリをLLMで生成
-4. **Refined Retriever Node**
-    - リファインドクエリで再度ベクトルDB検索
-5. **Synthesizer Node**
-    - リファインドクエリと再検索結果をもとに、LLMで最終回答を生成
-
-各ノードはLangGraphのStateGraphで直列につながり、状態（state）はTypedDictで管理されます。
+1.  **`app.py`**がユーザー入力を受け取り、初期状態(`AgenticState`)を作成して`graph.invoke`を呼び出します。
+2.  **`graph_builder.py`**で定義されたグラフが実行を開始します。
+3.  グラフは`retriever` -> `evaluator` -> `refiner` -> `refined_retriever` -> `synthesizer`の順で、**`nodes/`**ディレクトリに実装された各ノード関数を呼び出します。
+4.  各ノードは状態を更新し、最終的に`synthesizer`が生成した回答が`app.py`に返却され、UIに表示されます。
 
 ---
 
-## セットアップ
+## コード解説
 
-1. `AgenticRag/config.ini` を編集し、使用するLLMやPDFファイル、ベクトルDB保存先などを設定
-    ```ini
-    [LLM]
-    PROVIDER = ollama
+### `app.py`
+- Streamlitを使用してUIを構築します。
+- `shared_components`と`graph_builder`をインポートします。
+- `get_components`関数で、`PDFProcessor`と`LLM`のインスタンスをキャッシュ付きでロードします。
+- `build_agentic_graph()`を呼び出して、実行可能なLangGraphのグラフを構築します。
+- ユーザーからの質問をトリガーに、初期状態を作成し`graph.invoke()`を実行して、結果を整形して表示します。
 
-    [ollama]
-    BASE_URL = http://localhost:11434
-    MODEL = gemma3:4b-it-qat
+### `graph_builder.py`
+- `AgenticState`という`TypedDict`を定義し、グラフ内でり受け渡しされるデータの型を定めます。
+- `nodes`ディレクトリから各ノード関数をインポートします。
+- `StateGraph`をインスタンス化し、`.add_node()`で各関数をノードとして登録し、`.add_edge()`でそれらの実行順序を定義します。
+- `.compile()`で実行可能なグラフオブジェクトを生成し、返す`build_agentic_graph`関数を公開します。
 
-    [embedding]
-    MODEL = intfloat/multilingual-e5-small
-
-    [vectorstore]
-    DIRECTORY = ./vectorstore
-
-    ```
-3. PDFファイルを指定のパスに配置
-
----
-
-## 実行方法
-
-```bash
-streamlit run agenticrag.py
-```
+### `nodes/`
+- **`retrieval.py`**: 初期検索と再検索を行うノード。
+- **`evaluation.py`**: 検索結果の関連性を評価するノード。
+- **`refinement.py`**: 評価結果に基づき、検索クエリを改善するノード。
+- **`synthesis.py`**: 最終的な検索結果から回答を生成するノード。
+- 各ファイルは、`state`を引数に取り、更新された`state`の一部を辞書として返す、という規約に従います。
 
 ---
 
 ## 使い方
 
-1. ブラウザで表示されるUIに質問を入力
-2. 「実行」ボタンを押すと、以下の流れで回答が生成されます
-    - Retrieval Agent Output: 質問に関連する文書をベクトルDBから検索
-    - Evaluator Output: 検索結果の関連度をLLMで評価
-    - Refined Query: 評価結果をもとにクエリをリファイン
-    - Secondary Retrieval: リファイン後のクエリで再検索
-    - Final Answer: 最終回答を生成
+1.  `AgenticRag/config.ini`を編集し、モデル名やベクトルストアのディレクトリを設定します。
+2.  `pdfs/`ディレクトリに、知識ベースとしたいPDFファイルを配置します。
+3.  以下のコマンドでアプリケーションを起動します。
+    ```bash
+    streamlit run AgenticRag/app.py
+    ```
+4.  ブラウザにUIが表示されたら、質問を入力し「実行」ボタンを押します。インデックスが存在しない場合は、初回実行時に自動で作成されます。
 
----
+## 設定例（config.ini）
+```ini
+[LLM]
+PROVIDER = ollama
 
-## ディレクトリ構成
+[ollama]
+BASE_URL = http://localhost:11434
+MODEL = gemma3:4b-it-qat
 
+[embedding]
+MODEL = intfloat/multilingual-e5-small
+
+[vectorstore]
+DIRECTORY = ./vectorstore_agenticrag
+
+[pdf]
+# pdfs/ ディレクトリ全体を対象とするため、個別のPATH指定は不要
+DIRECTORY = ./pdfs
 ```
-AgenticRag/
-├── agenticrag.py
-├── config.ini
-├── README.md
-components/
-    └── pdf_processor.py
-model_loader/
-    └── load_llm.py
-vectorstore/
-    └── ...
-```
-
----
-
-## 注意事項
-- LLMプロバイダやモデルによっては、別途APIキーやローカルサーバーの起動が必要です。
-- ベクトルDBやPDFのパスはconfig.iniで必ず正しく指定してください。
-
-

@@ -1,122 +1,98 @@
-# RAGシステム共通仕様書
+# RAGシステム開発ガイドライン
 
-## 概要
+## 1. 概要
 
-本ドキュメントは、Retrieval Augmented Generation (RAG) システムの一般的な構造と主要コンポーネントの仕様を示します。これにより、様々なRAG手法の実装・比較・拡張が容易になります。
+本ドキュメントは、本リポジトリにおけるRetrieval Augmented Generation (RAG) システムの標準アーキテクチャ、ディレクトリ構成、および開発プラクティスを定義します。このガイドラインに従うことで、様々なRAG手法の実装・比較・拡張を効率的かつ高品質に行うことを目指します。
 
-## アーキテクチャ
+## 2. 標準アーキテクチャ
 
-RAGシステムは、以下の主要コンポーネントで構成されます。
+各RAG実装は、以下のコンポーネントで構成されることを基本とします。
 
 ```mermaid
 graph TD
-    A["UI"] --> B{"RAG Core"};
-    B --> C["LLM"];
-    B --> D["Vectorstore"];
-    A --> E["DocumentProcessor"];
-    E --> D;
-    E --> F["Document"];
-    C --> B;
-    D --> B;
+    subgraph Shared Components
+        SC1["shared_components/model_loader"]
+        SC2["shared_components/pdf_processor"]
+    end
+
+    subgraph RAG Implementation (e.g., DeepRag)
+        UI["app.py (Streamlit)"]
+        CORE{"Orchestrator / Graph Builder"}
+        COMP["Components / Nodes"]
+    end
+
+    subgraph Data
+        DOC["Documents (PDFs)"]
+        VS["Vectorstore"]
+    end
+
+    UI --> CORE;
+    CORE --> COMP;
+    CORE --> SC1;
+    CORE --> VS;
+
+    UI --> SC2;
+    SC2 --> DOC;
+    SC2 --> VS;
 ```
 
-* **UI:** ユーザーインターフェース。質問入力や結果表示を担当。
-* **RAG Core:** クエリ分解、検索、回答生成などRAGのコアロジックを管理。
-* **LLM:** 言語モデルのロード・推論を担当。
-* **Vectorstore:** ドキュメントの埋め込み保存・検索を担当。
-* **DocumentProcessor:** ドキュメントの読み込み・前処理・インデックス作成を担当。
-* **Document:** 処理対象となる元データ。
+-   **UI (`app.py`)**: Streamlitによるユーザーインターフェース。ユーザーからの入力受付と結果表示を担当します。
+-   **Orchestrator / Graph Builder (`orchestrator.py` or `graph_builder.py`)**: RAGのコアロジックを管理する中核。コンポーネントを呼び出し、全体の処理フローを制御します。
+-   **Components / Nodes (`components/` or `nodes/`)**: RAGの各ステップを実装する独立したモジュール群（例：質問分解、検索、評価、回答生成など）。
+-   **Shared Components (`shared_components/`)**: 全RAG実装で共通利用されるモジュール。
+    -   `model_loader`: LLMや埋め込みモデルをロードします。
+    -   `pdf_processor`: PDFの読み込み、チャンク化、Vectorstoreの作成・管理を行います。
+-   **Documents / Vectorstore**: 入力ドキュメントと、それらをベクトル化したデータベース。
 
-## 主要コンポーネント仕様
+## 3. ディレクトリ構成
 
-### RAG Coreクラス（例: `RAGCore`）
+新しいRAG実装を追加する際は、以下のディレクトリ構成に従ってください。
 
-- **目的:** ユーザーの質問に対して、段階的なクエリ分解と検索を行い、最終的な回答を生成する。
-- **必須メソッド例:**
-    - `__init__(self, llm, vectorstore)`
-    - `decompose_prompt`: クエリ分解用プロンプト
-    - `answer_prompt`: 回答生成用プロンプト
-    - `search(self, question: str, max_depth: int = 5) -> Tuple[str, List[dict]]`
-        - 再帰的にサブクエリ生成・検索・中間回答生成を行い、最終回答とトレース情報を返す
-
-#### プロンプト例
-
-```text
-You are a RAG system that decomposes queries step-by-step.
-History: {history}
-Main Question: {question}
-Generate the next atomic subquery or 'TERMINATE' to finish.
+```
+(RAG名)/
+  ├── app.py              # UI (Streamlit)
+  ├── orchestrator.py     # または graph_builder.py などのコアロジック
+  ├── components/         # または nodes/ などのコンポーネント群
+  │   ├── __init__.py
+  │   └── ...
+  ├── config.ini          # 当該RAG実装固有の設定ファイル
+  └── README.md           # 当該RAG実装の詳細な説明
 ```
 
-```text
-Use the following context to answer the query.
-Context: {context}
-Query: {query}
-Answer concisely.
+## 4. 開発プロセスとテスト
+
+品質を担保し、安全なリファクタリングを可能にするため、テスト駆動開発（TDD）を推奨します。
+
+-   **テストディレクトリ**: すべてのテストコードは、リポジトリルートの`tests/`ディレクトリに配置します。
+-   **テストフレームワーク**: `pytest`を使用します。
+-   **テストの単位**:
+    -   **コンポーネントテスト**: 各コンポーネント（`components/`や`nodes/`内のモジュール）が独立して正しく動作することを確認する単体テストを必ず作成してください。
+    -   **統合テスト**: OrchestratorやGraph Builderが、各コンポーネントを正しく連携させて一連のフローを実行できるかを確認するテストも作成します。
+-   **モッキング**: LLMのAPI呼び出しやファイルシステムへのアクセスなど、外部依存性を持つ部分は`unittest.mock`を用いて適切にモック化し、テストの安定性と速度を確保してください。
+
+### テストの実行
+
+```bash
+# すべてのテストを実行
+pytest
+
+# 特定のテストファイルを実行
+pytest tests/test_deeprag.py
 ```
 
-#### アルゴリズム例
+## 5. 実行方法
 
-1. 現在の質問と履歴に基づき、`decompose_prompt` で次のサブクエリを生成
-2. サブクエリが 'TERMINATE' でなければ、Vectorstoreで類似検索し関連ドキュメントを取得
-3. 取得ドキュメントをコンテキストに `answer_prompt` で中間回答を生成
-4. ステップを記録し、再帰的に次のサブクエリへ
-5. 'TERMINATE' または最大深度で再帰終了
-6. 全中間回答を結合し、最終コンテキストとしてLLMで最終回答を生成
-7. 最終回答とトレース情報を返す
+各RAGアプリケーションは、それぞれの`app.py`を`streamlit`で実行します。
 
-### DocumentProcessorクラス
+```bash
+streamlit run DeepRag/app.py
+```
 
-- **目的:** ドキュメントの読み込み、テキスト分割、埋め込み生成、Vectorstoreへの保存/ロード
-- **主要メソッド例:**
-    - `index_documents()`
-    - `load_vectorstore()`
+## 6. 共通モジュールの利用
 
-### LLMローダ
+コードの重複を避け、保守性を高めるために、`shared_components`内のモジュールを積極的に利用してください。
 
-- **目的:** 設定に基づき、指定プロバイダー・モデルのLLMインスタンスをロード
+-   **LLMのロード**: `shared_components.model_loader.load_llm`を使用します。
+-   **PDF処理とVectorstore管理**: `shared_components.pdf_processor.PDFProcessor`を使用します。
 
-### Vectorstore
-
-- **目的:** ドキュメント埋め込みの保存・検索
-
-## 設定ファイル例 (`config.ini`)
-
-- `[llm]` モデル名
-- `[embedding]` 埋め込みモデル名
-- `[vectorstore]` 保存ディレクトリ
-- `[document]` 入力ファイルパス
-
-## 実行方法（例）
-
-1. 依存関係インストール
-2. 設定ファイル編集
-3. ドキュメント配置
-4. アプリケーション実行
-5. UIでインデックス作成・質問入力・回答取得
-
-## 拡張性
-
-- 各コンポーネントは独立して差し替え可能
-- RAG Coreのメソッドを追加・置換することで多様なRAG戦略を実装可能
-- DocumentProcessorの再利用で異なるRAGでも共通パイプライン利用可
-
----
-
-## 参考実装（DeepRAG等）
-
-DeepRAGや他の具体的な実装例は付録や別セクションで紹介し、本文は抽象仕様に徹するのが理想です。
-
-### 共有モジュール・ユーティリティ
-
-- **目的:** 複数のRAG実装間で共通利用できる関数やクラス、設定管理、前処理、モデルローダなどをまとめ、再利用性・保守性を高める。
-- **例:**
-    - `model_loader/` ディレクトリ: LLMローダや共通のモデル管理関数
-    - `components/pdf_processor.py`: PDFや他ドキュメントの読み込み・分割・埋め込み生成・Vectorstore管理
-    - 共通の設定ファイル（`config.ini` など）
-    - 汎用的なプロンプトテンプレートや検索ユーティリティ
-
-#### 利用例
-
-- 各RAG実装（例: DeepRAG, DynamicRag, RRARagなど）は、`model_loader`や`components`配下の共通モジュールをimportして利用することで、重複実装を避け、開発効率・品質を向上できる。
-- 新たなRAG戦略を追加する場合も、コアロジックのみを実装すればよく、前処理やモデルロード部分は共通モジュールを流用可能。
+これにより、前処理やモデルのインスタンス化に関するロジックを各実装で個別に書く必要がなくなります。
