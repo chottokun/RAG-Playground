@@ -18,36 +18,36 @@
 
 ```
 AgenticRag/
-  agenticrag.py   # AgenticRagデモ本体
-  config.ini      # AgenticRag設定ファイル
-  README.md       # AgenticRagの詳細説明
+  app.py              # AgenticRagデモ本体 (UI)
+  graph_builder.py    # LangGraphのグラフ構築ロジック
+  nodes/              # 各エージェントノードのコンポーネント
+    retrieval.py
+    ...
+  config.ini          # AgenticRag設定ファイル
+  README.md           # AgenticRagの詳細説明
 DeepRag/
-  deeprag.py      # DeepRAGデモ本体
-  config.ini      # DeepRag設定ファイル
-  2502.01142v1.pdf # サンプルPDF
-  README.md       # DeepRAGの詳細説明
-DynamicRag/
-  DynaRag.py      # DynamicRagデモ本体
-  config.ini      # DynamicRag設定ファイル
-  README.md       # DynamicRagの詳細説明
-MRD_Rag/
-  mrdrag.py       # MADAM-RAGデモ本体
-  README.md       # MADAM-RAGの詳細説明
-RRARag/
-  rrarag.py       # RRA RAGデモ本体
-  README.md       # RRARagの詳細説明
-components/       # 共通コンポーネント
-  pdf_processor.py # PDF処理モジュール
-model_loader/     # モデルロード共通モジュール
-  __init__.py
-  load_llm.py
-pdfs/             # PDFファイル配置用ディレクトリ
-vectorstore/      # ベクトルストア（DeepRag/RRARag用、自動生成）
-vectorstore_dynamicrag/ # ベクトルストア（DynamicRag用、自動生成）
-.gitignore        # Git無視設定
-guidelines.md     # RAGシステム共通仕様
-Pipfile           # 依存パッケージ管理
-README.md         # 本ファイル
+  app.py              # DeepRAGデモ本体 (UI)
+  orchestrator.py     # DeepRAGのコアロジック
+  components/         # DeepRAG固有のコンポーネント
+    decomposition.py
+    ...
+  config.ini          # DeepRag設定ファイル
+  README.md           # DeepRAGの詳細説明
+... (他のRAG実装) ...
+shared_components/    # 複数のRAG実装で共有される共通コンポーネント
+  pdf_processor.py    # PDF処理・VectorDB管理
+  model_loader/       # LLM・埋め込みモデルのロード
+tests/                # テストコード
+  test_deeprag.py
+  test_agenticrag_nodes.py
+  ...
+development/          # 開発用ディレクトリ
+  status.md
+pdfs/                 # PDFファイル配置用ディレクトリ
+.gitignore            # Git無視設定
+guidelines.md         # RAGシステム共通仕様
+Pipfile               # 依存パッケージ管理
+README.md             # 本ファイル
 ```
 
 ---
@@ -83,19 +83,34 @@ README.md         # 本ファイル
 一般的には以下の手順となります。
 
 1. 各デモディレクトリ内の `config.ini` を編集し、使用するLLMやPDFファイル、ベクトルストアディレクトリなどを設定します。
-2. 各デモのPythonファイル (`deeprag.py`, `rrarag.py`, `agenticrag.py`, `DynaRag.py`, `mrdrag.py`) をStreamlitで起動します。例: `streamlit run DeepRag/deeprag.py`
+2. 各デモの **`app.py`** ファイルをStreamlitで起動します。例: `streamlit run DeepRag/app.py`
 3. アプリのUIからPDFのインデックス作成や質問入力を行います。
+
+### テストの実行
+
+本プロジェクトでは`pytest`によるテストが整備されています。
+
+```bash
+# すべてのテストを実行
+pytest
+
+# 特定のテストファイルを実行
+pytest tests/test_deeprag.py
+```
 
 ---
 
 ## 依存パッケージ
 - streamlit
+- langchain
+- langgraph
 - langchain-ollama
 - langchain-chroma
 - langchain-huggingface
 - langchain_community
 - chromadb
 - torch, configparser など
+- **pytest** (開発用)
 
 ---
 

@@ -25,6 +25,9 @@ class PDFProcessor:
             print(f"PDF directory not found: {self.pdf_directory}")
             return None # Or raise an error
 
+        # splitterをループの外で一度だけ初期化
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+
         for filename in os.listdir(self.pdf_directory):
             if filename.endswith(".pdf"):
                 pdf_path = os.path.join(self.pdf_directory, filename)
@@ -32,7 +35,6 @@ class PDFProcessor:
                 try:
                     loader = PyPDFLoader(pdf_path)
                     docs = loader.load()
-                    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
                     chunks = splitter.split_documents(docs)
                     all_chunks.extend(chunks)
                     print(f"Processed {len(chunks)} chunks from {filename}")
