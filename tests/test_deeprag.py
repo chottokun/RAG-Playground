@@ -13,22 +13,6 @@ mock_llm_chain_class = MagicMock()
 # --- Fixtureの定義 ---
 
 @pytest.fixture
-def mock_langchain_dependencies():
-    """langchainの依存関係をモックするコンテキストマネージャ"""
-    with patch.dict('sys.modules', {
-        'langchain.prompts': MagicMock(PromptTemplate=mock_prompt_template_class),
-        'langchain.chains': MagicMock(LLMChain=mock_llm_chain_class),
-        # shared_componentsの依存もモックしておく
-        'shared_components.model_loader.load_llm': MagicMock(),
-        'shared_components.pdf_processor': MagicMock(),
-    }) as patched_modules:
-        yield patched_modules
-    # テスト終了後にモックをリセット
-    mock_prompt_template_class.reset_mock()
-    mock_llm_chain_class.reset_mock()
-
-
-@pytest.fixture
 def mock_llm():
     """LLMのモックを作成するFixture"""
     llm = MagicMock()

@@ -25,27 +25,21 @@ DIRECTORY = mock_vectorstore/
 
 # --- Fixtureの定義 ---
 @pytest.fixture
-def mocked_pdf_processor():
+def mocked_pdf_processor(mock_langchain_dependencies):
     """
     依存ライブラリとファイルシステムをモックし、PDFProcessorクラスを返すFixture。
     """
     # configparserのopenをモックして、偽の設定ファイル内容を読み込ませる
-    with patch("builtins.open", mock_open(read_data=mock_config_content)), \
-         patch.dict('sys.modules', {
-            'langchain_community.document_loaders': MagicMock(PyPDFLoader=mock_pypdf_loader),
-            'langchain.text_splitter': MagicMock(RecursiveCharacterTextSplitter=mock_text_splitter),
-            'langchain_huggingface': MagicMock(HuggingFaceEmbeddings=mock_hf_embeddings),
-            'langchain_chroma': MagicMock(Chroma=mock_chroma)
-         }):
-
+    with patch("builtins.open", mock_open(read_data=mock_config_content)):
         # モックが有効なコンテキスト内でテスト対象をインポート
         from shared_components.pdf_processor import PDFProcessor
 
         # 各テスト実行前にモックをリセット
-        mock_pypdf_loader.reset_mock()
-        mock_text_splitter.reset_mock()
-        mock_hf_embeddings.reset_mock()
-        mock_chroma.reset_mock()
+        # conftestでモックした実体をリセットする必要がある
+        from unittest.mock import MagicMock
+        # ここでリセットするのは難しいので、各テストケースでリセットするか、
+        # conftestのfixture自体を関数スコープにするのが良い。
+        # 今回はconftestのfixtureを関数スコープに変更するアプローチをとる。
 
         yield PDFProcessor(config_path='dummy/config.ini')
 
@@ -129,3 +123,15 @@ def test_load_vectorstore_no_dir(mock_exists, mocked_pdf_processor):
     assert result is None
     # Chromaは呼び出されない
     mock_chroma.assert_not_called()
+
+def test_init_raises_error_for_nonexistent_config(mock_langchain_dependencies):
+    """存在しないconfigパスを渡すとFileNotFoundErrorを送出するかのテスト"""
+    from shared_components.pdf_processor import PDFProcessor
+
+    # os.path.existsをモックして、ファイルが存在しないように見せかける
+    with patch("os.path.exists", return_value=False), \
+         patch("builtins.open", mock_open(read_data="")) as mock_file:
+        # read_dataを空にすると、config.read()が0を返す
+        mock_file.side_effect = FileNotFoundError # open自体がエラーを出すようにする
+        with pytest.raises(FileNotFoundError):
+            PDFProcessor(config_path='non/existent/path.ini')

@@ -16,8 +16,9 @@ from langchain.prompts import PromptTemplate
 import json
 
 # ---------- 設定 ----------
+CONFIG_PATH = 'MRD_Rag/config.ini'
 config = configparser.ConfigParser()
-config.read(os.path.join(project_root, 'DeepRag', 'config.ini'))
+config.read(CONFIG_PATH)
 OLLAMA_BASE_URL = config.get('ollama', 'BASE_URL', fallback='http://localhost:11434')
 EMBEDDING_MODEL = config.get('embedding', 'MODEL', fallback='intfloat/multilingual-e5-small')
 LLM_MODEL = config.get('llm', 'MODEL', fallback='llama2')
@@ -162,7 +163,7 @@ def main():
     st.title("MADAM-RAG: Multi-Round Debate & Aggregation")
     st.info(f"Ollama BASE_URL: {OLLAMA_BASE_URL}")
 
-    processor = PDFProcessor(config_path=os.path.join(project_root, 'DeepRag', 'config.ini'))
+    processor = PDFProcessor(config_path=CONFIG_PATH)
 
     if st.button("Index PDF"):
         with st.spinner("Indexing documents..."):

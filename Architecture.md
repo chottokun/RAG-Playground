@@ -169,9 +169,13 @@ Handles PDF loading, chunking, and vectorstore creation/loading.
 
 -   **Initialization**: `PDFProcessor(config_path='path/to/your/config.ini')`
     - It reads `[vectorstore]` and `[pdf]` sections from your config.
--   **Methods**:
-    -   `.index_pdfs()`: Creates and saves a new vectorstore.
-    -   `.load_vectorstore()`: Loads an existing vectorstore.
+    - **CRITICAL**: You **must** provide the correct path to your RAG-specific `config.ini`. If the path is incorrect, the processor will not raise an error but will use fallback default values, which can lead to hard-to-debug issues like using the wrong vectorstore directory.
+-   **Core Methods**:
+    -   `.get_chunks_from_pdfs() -> List[Document]`: Reads PDFs from the directory specified in `config.ini` and returns a list of document chunks.
+    -   `.create_vectorstore_from_chunks(chunks, persist_directory)`: Creates a vectorstore from a list of chunks at the specified directory.
+-   **Convenience Method**:
+    -   `.index_pdfs()`: A handy method that combines the two steps above, using the default `persist_directory` from your `config.ini`.
+    -   `.load_vectorstore()`: Loads an existing vectorstore from the `persist_directory`.
 
 ### `load_llm`
 Loads an LLM instance from various providers.
@@ -179,3 +183,22 @@ Loads an LLM instance from various providers.
 -   **Usage**: `load_llm(provider, model, **kwargs)`
     - Reads configuration from your `config.ini` (`[LLM]`, `[ollama]`, etc.).
     - Example: `load_llm(provider='ollama', model='gemma3:4b-it-qat', base_url='...')`
+
+## 5. Common Pitfalls and Best Practices
+
+### Configuration Management
+- **Always use a dedicated `config.ini`**: Each RAG implementation in its own directory must have its own `config.ini`. Do not reference configurations from other RAG directories.
+- **Use a `CONFIG_PATH` constant**: In your `app.py` or main script, define the path to your config file as a constant to avoid magic strings.
+  ```python
+  # Good practice
+  CONFIG_PATH = 'MyNewRAG/config.ini'
+  config.read(CONFIG_PATH)
+  processor = PDFProcessor(config_path=CONFIG_PATH)
+  ```
+
+### Refactoring Legacy Code
+When updating older RAG implementations to use the shared components, follow these steps:
+1.  **Replace Imports**: Find any imports from the old `components/` or `model_loader/` directories and replace them with `from shared_components...`.
+2.  **Use `PDFProcessor`**: Remove any custom code for `PyPDFLoader`, `RecursiveCharacterTextSplitter`, and `Chroma.from_documents`. Replace it with a single instance of `PDFProcessor`.
+3.  **Use `load_llm`**: Replace any direct instantiation of `OllamaLLM` or other LLM classes with a call to `load_llm`.
+4.  **Verify `config.ini` paths**: Ensure the `PDFProcessor` is initialized with the correct `config_path` as described above.
