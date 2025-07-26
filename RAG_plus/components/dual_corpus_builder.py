@@ -17,7 +17,7 @@ from langchain_ollama import OllamaLLM
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 import uuid
-from model_loader.load_embedding import load_embedding_model
+from shared_components.model_loader.load_embedding import load_embedding_model
 
 class DualCorpusBuilder:
     def __init__(self, config: configparser.ConfigParser):

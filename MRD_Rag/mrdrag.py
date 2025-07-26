@@ -9,8 +9,8 @@ def get_project_root():
 project_root = get_project_root()
 sys.path.append(project_root)
 
-from model_loader.load_llm import load_llm
-from components.pdf_processor import PDFProcessor
+from shared_components.model_loader.load_llm import load_llm
+from shared_components.pdf_processor import PDFProcessor
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 import json

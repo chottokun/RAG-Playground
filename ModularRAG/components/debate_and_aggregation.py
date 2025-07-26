@@ -12,7 +12,7 @@ from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 # Assuming LLM returns string for agent outputs, JSON for aggregator
 from langchain_core.output_parsers import JsonOutputParser
-from model_loader.load_llm import load_llm # Need to load LLM with different temperatures
+from shared_components.model_loader.load_llm import load_llm # Need to load LLM with different temperatures
 
 # Prompt template for individual debate agents
 AGENT_PROMPT = PromptTemplate(

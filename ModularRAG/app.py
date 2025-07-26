@@ -13,8 +13,8 @@ sys.path.append(project_root)
 
 
 
-from components.pdf_processor import PDFProcessor
-from ModularRAG.orchestrator import RAGOrchestrator # Import RAGOrchestrator
+from shared_components.pdf_processor import PDFProcessor
+from ModularRAG.orchestrator import RAGOrchestrator
 from ModularRAG.shared_types import HistoryItem # Import HistoryItem
 
 # --- Configuration Loading ---

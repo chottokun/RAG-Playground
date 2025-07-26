@@ -56,7 +56,7 @@ if __name__ == "__main__":
     # Dummy setup for testing
     import configparser
     from langchain_chroma import Chroma
-    from model_loader.load_embedding import load_embedding_model
+    from shared_components.model_loader.load_embedding import load_embedding_model
     from typing import List
 
     # Create a dummy config

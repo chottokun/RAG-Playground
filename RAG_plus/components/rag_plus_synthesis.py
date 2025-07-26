@@ -81,7 +81,7 @@ if __name__ == "__main__":
     print("Running rag_plus_synthesis_component example...")
     
     # Dummy setup for testing
-    from model_loader.load_llm import load_llm
+    from shared_components.model_loader.load_llm import load_llm
     import configparser
     from typing import List
 

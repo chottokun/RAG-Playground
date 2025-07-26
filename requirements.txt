@@ -8,6 +8,8 @@ langchain-ollama
 langchain-chroma
 langgraph
 chromadb
+networkx
+langchain-experimental
 pypdf
 sentence-transformers
 torch

@@ -1,11 +1,11 @@
 import sys
 import os
 
-# Add the project root to sys.path to allow importing from model_loader and shared_types
+# Add the project root to sys.path to allow importing from shared_components.model_loader and shared_types
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')) # Adjust path for RAG_plus
 sys.path.append(project_root)
 
-from model_loader.load_llm import load_llm
+from shared_components.model_loader.load_llm import load_llm
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from typing import Dict, Any, List, TypedDict, cast
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     print("Running example evaluation...")
     # Assuming you have a way to load your LLM here for testing
     # Example:
-    # from model_loader.load_llm import load_llm
+    # from shared_components.model_loader.load_llm import load_llm
     # llm_provider = "ollama" # Or read from config
     # llm_model = "gemma3:4b-it-qat" # Or read from config
     # llm_base_url = "http://localhost:11434" # Or read from config
