@@ -45,7 +45,7 @@ def main():
         model=config.get('llm', 'MODEL'),
         base_url=config.get('ollama', 'BASE_URL', fallback=None)
     )
-    dr = DeepRAG(llm, vectorstore)
+    dr = DeepRAG(llm, vectorstore, config)
 
     # --- RAG Execution ---
     st.header("Ask a Question")

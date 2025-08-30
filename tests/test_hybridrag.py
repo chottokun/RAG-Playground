@@ -42,6 +42,19 @@ def test_extract_triplets(mock_llm, mock_config):
     mock_llm.invoke.assert_called_once()
     assert triplets == [("Apple", "is a", "company"), ("Tim Cook", "is the CEO of", "Apple")]
 
+def test_extract_triplets_security():
+    """evalの脆弱性を確認するテスト"""
+    malicious_string = "os.system('echo vulnerable')"
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = f"__import__('os').system('echo vulnerable')"
+    mock_config = MagicMock()
+    builder = KnowledgeGraphBuilder(mock_llm, mock_config)
+
+    # ast.literal_evalは安全なため、コマンドは実行されずに例外が発生し、
+    # _extract_tripletsは空のリストを返すはず
+    result = builder._extract_triplets("some text")
+    assert result == []
+
 def test_build_from_documents(mock_llm, mock_config):
     builder = KnowledgeGraphBuilder(mock_llm, mock_config)
     docs = [

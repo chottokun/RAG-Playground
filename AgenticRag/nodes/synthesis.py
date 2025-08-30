@@ -12,6 +12,6 @@ def synthesizer_node(state):
 
     prompt = synth_prompt.format(refiner=refiner, docs="\n".join(docs))
     # TODO: llm.invokeを使うように統一する
-    answer = llm(prompt)
+    answer = llm.invoke(prompt)
 
     return {"final_answer": answer.strip()}

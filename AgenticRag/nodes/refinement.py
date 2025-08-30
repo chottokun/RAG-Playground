@@ -12,6 +12,6 @@ def refiner_node(state):
 
     prompt = refiner_prompt.format(question=question, evaluator="\n".join(evaluator))
     # TODO: llm.invokeを使うように統一する
-    refined_query = llm(prompt)
+    refined_query = llm.invoke(prompt)
 
     return {"refiner": refined_query.strip()}

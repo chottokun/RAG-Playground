@@ -18,7 +18,7 @@ config.read(config_path)
 
 LLM_PROVIDER = config.get('LLM', 'PROVIDER', fallback='ollama')
 OLLAMA_BASE_URL = config.get('ollama', 'BASE_URL', fallback=None)
-LLM_MODEL = config.get('ollama', 'MODEL')
+LLM_MODEL = config.get('ollama', 'MODEL', fallback='gemma3:4b-it-qat')
 
 # --- Streamlit UI ---
 
@@ -53,7 +53,8 @@ def main():
         initial_state: AgenticState = {
             "question": question,
             "vectordb": vectordb,
-            "llm": llm
+            "llm": llm,
+            "config": config
         }
 
         with st.spinner("Agentic RAG is thinking..."):

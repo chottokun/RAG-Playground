@@ -2,6 +2,7 @@ import os
 import networkx as nx
 from typing import List, Tuple
 from langchain_core.documents import Document
+import ast
 
 # LLMに知識トリプレットを抽出させるためのプロンプト
 # このプロンプトは、テキストから(head, relation, tail)の形式で情報を引き出すように指示します。
@@ -36,10 +37,10 @@ class KnowledgeGraphBuilder:
         response = self.llm.invoke(prompt)
 
         # LLMの出力をパースして (h, r, t) のリストに変換する
-        # ここではevalを使うが、本番環境ではより安全なパース方法が望ましい
+        # ast.literal_evalを使用して安全にパースする
         try:
             # LLMが `[("h", "r", "t")]` のような文字列を返すと仮定
-            triplets = eval(response)
+            triplets = ast.literal_eval(response)
             if isinstance(triplets, list):
                 return triplets
         except (SyntaxError, ValueError) as e:

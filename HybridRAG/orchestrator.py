@@ -32,17 +32,19 @@ Final Answer:
 
 
 class HybridRAGOrchestrator:
-    def __init__(self, llm, vectorstore, knowledge_graph):
+    def __init__(self, llm, vectorstore, knowledge_graph, config):
         self.llm = llm
         self.vectorstore = vectorstore
         self.knowledge_graph = knowledge_graph
+        self.config = config
+        self.top_k = self.config.getint('vectorstore', 'TOP_K', fallback=3)
 
     def run(self, query: str):
         """HybridRAGのメイン実行フロー"""
 
         # 1. VectorRAG検索
         print("Performing VectorRAG retrieval...")
-        vector_docs = self.vectorstore.similarity_search(query, k=3)
+        vector_docs = self.vectorstore.similarity_search(query, k=self.top_k)
         vector_context = "\n\n".join([doc.page_content for doc in vector_docs])
         print(f"Vector context retrieved:\n---\n{vector_context[:200]}...\n---")
 

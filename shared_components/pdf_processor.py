@@ -2,9 +2,9 @@ import os
 import configparser
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from typing import List, Optional
+from langchain_core.documents import Document
 
 class PDFProcessor:
     def __init__(self, config_path='config.ini'):
@@ -19,6 +19,7 @@ class PDFProcessor:
         self.embeddings = HuggingFaceEmbeddings(model_name=self.embedding_model_name)
 
     def get_chunks_from_pdfs(self) -> Optional[List[Document]]:
+        from langchain_community.document_loaders import PyPDFLoader
         """Loads all PDFs and splits them into chunks, but does not save them."""
         all_chunks = []
         if not os.path.exists(self.pdf_directory):

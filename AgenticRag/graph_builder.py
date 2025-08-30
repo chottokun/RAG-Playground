@@ -1,5 +1,6 @@
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, List
+import configparser
 
 # 新しい場所からノード関数をインポート
 from .nodes.retrieval import retrieve_node, refined_retrieve_node
@@ -11,6 +12,7 @@ class AgenticState(TypedDict, total=False):
     question: str
     vectordb: object
     llm: object
+    config: configparser.ConfigParser
     retriever: List[str]
     evaluator: List[str]
     refiner: str

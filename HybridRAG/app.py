@@ -63,11 +63,11 @@ def main():
             st.sidebar.error("Please build the Vectorstore first.")
         else:
             with st.spinner("Building Knowledge Graph from documents... This may take a while."):
-                # PDFProcessorはテキストチャンクを返す機能がないため、Vectorstoreから全ドキュメントを取得
-                # 本来はPDFProcessorにチャンクを返す機能を追加するのが望ましい
-                docs = vectorstore.get(include=["documents"])['documents']
-                from langchain_core.documents import Document
-                doc_objects = [Document(page_content=d) for d in docs]
+                # PDFProcessorから直接チャンクを取得
+                doc_objects = pdf_processor.get_chunks_from_pdfs()
+                if not doc_objects:
+                    st.sidebar.error("No documents found to build the knowledge graph.")
+                    st.stop()
 
                 new_kg = kg_builder.build_from_documents(doc_objects)
                 kg_builder.save_graph(new_kg)
@@ -82,7 +82,7 @@ def main():
         st.stop()
 
     # Orchestratorの準備
-    orchestrator = HybridRAGOrchestrator(llm, vectorstore, knowledge_graph)
+    orchestrator = HybridRAGOrchestrator(llm, vectorstore, knowledge_graph, config)
 
     st.header("Ask a Question")
     query = st.text_area("Enter your question about the financial documents:")

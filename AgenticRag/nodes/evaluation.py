@@ -14,6 +14,6 @@ def evaluator_node(state):
     for doc in docs:
         prompt = eval_prompt.format(question=question, document=doc)
         # TODO: llm.invokeを使うように統一する
-        results.append(llm(prompt))
+        results.append(llm.invoke(prompt))
 
     return {"evaluator": results}

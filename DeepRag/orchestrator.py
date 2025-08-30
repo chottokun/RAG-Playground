@@ -14,9 +14,11 @@ from DeepRag.components.synthesis import synthesize_intermediate_answer, synthes
 
 class DeepRAG:
     """リファクタリング後のOrchestrator"""
-    def __init__(self, llm, vectorstore):
+    def __init__(self, llm, vectorstore, config):
         self.llm = llm
         self.vectorstore = vectorstore
+        self.config = config
+        self.top_k = self.config.getint('vectorstore', 'NUM_SEARCH_RESULTS', fallback=3)
         # プロンプトテンプレートをここで定義
         self.decomp_prompt = PromptTemplate(
             input_variables=["question", "history"],
@@ -52,7 +54,7 @@ class DeepRAG:
                 return path
 
             # 2. Retrieval
-            docs = self.vectorstore.similarity_search(sub_query, k=3)
+            docs = self.vectorstore.similarity_search(sub_query, k=self.top_k)
             context = "\n\n".join(d.page_content for d in docs)
 
             # 3. Synthesisコンポーネント（中間）を呼び出す

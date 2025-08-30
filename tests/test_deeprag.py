@@ -37,13 +37,20 @@ def mock_vectorstore():
     return vectorstore
 
 @pytest.fixture
-def deep_rag_instance(mock_langchain_dependencies, mock_llm, mock_vectorstore):
+def mock_config():
+    """ConfigParserのモックを作成するFixture"""
+    config = MagicMock()
+    config.getint.return_value = 10
+    return config
+
+@pytest.fixture
+def deep_rag_instance(mock_llm, mock_vectorstore, mock_config):
     """モックされた依存関係を使ってDeepRAGのインスタンスを生成するFixture"""
     # モックが有効な状態でインポート
     from DeepRag.orchestrator import DeepRAG
 
     # インスタンスを生成して返す
-    return DeepRAG(llm=mock_llm, vectorstore=mock_vectorstore)
+    return DeepRAG(llm=mock_llm, vectorstore=mock_vectorstore, config=mock_config)
 
 
 # --- テストケース ---
@@ -68,8 +75,8 @@ def test_binary_tree_search(deep_rag_instance, mock_llm, mock_vectorstore):
 
     # 2. Vectorstoreの呼び出し回数
     assert mock_vectorstore.similarity_search.call_count == 2
-    mock_vectorstore.similarity_search.assert_any_call("Subquery 1", k=3)
-    mock_vectorstore.similarity_search.assert_any_call("Subquery 2", k=3)
+    mock_vectorstore.similarity_search.assert_any_call("Subquery 1", k=10)
+    mock_vectorstore.similarity_search.assert_any_call("Subquery 2", k=10)
 
     # 3. トレースの内容
     assert len(trace) == 2

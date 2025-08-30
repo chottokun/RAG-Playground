@@ -18,7 +18,7 @@ CONFIG_PATH = 'DynamicRag/config.ini'
 config = configparser.ConfigParser()
 config.read(CONFIG_PATH)
 
-TOP_N = 20  # initial retrieval count
+TOP_N = config.getint('vectorstore', 'TOP_N', fallback=20)
 
 # ---------- Prompts ----------
 RERANKER_PROMPT = PromptTemplate(
