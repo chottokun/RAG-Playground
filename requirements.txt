@@ -1,0 +1,18 @@
+# Core application dependencies
+streamlit
+langchain
+langchain-community
+langchain-core
+langchain-huggingface
+langchain-ollama
+langchain-chroma
+langgraph
+chromadb
+networkx
+langchain-experimental
+pypdf
+sentence-transformers
+torch
+
+# Development and testing dependencies
+pytest

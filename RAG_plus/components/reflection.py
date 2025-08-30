@@ -2,11 +2,11 @@ import sys
 import os
 from typing import List, Any, TypedDict
 
-# Add the project root to sys.path to allow importing from model_loader and shared_types
+# Add the project root to sys.path to allow importing from shared_components.model_loader and shared_types
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(project_root)
 
-from model_loader.load_llm import load_llm
+from shared_components.model_loader.load_llm import load_llm
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 

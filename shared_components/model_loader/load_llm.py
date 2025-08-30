@@ -4,19 +4,24 @@ from langchain_ollama import OllamaLLM
 
 def _get_param(param_name, env_names, kwargs, default=None):
     """
-    param_name: パラメータ名
-    env_names: 環境変数名（リストまたは単一文字列）
-    kwargs: 関数に渡されたパラメータ辞書
-    default: デフォルト値
+    引数、環境変数、デフォルト値の優先順位でパラメータを取得する。
+    1. kwargs[param_name] があれば最優先
+    2. 環境変数にあれば次に優先
+    3. どちらもなければdefault値を返す
     """
+    # 1. 引数(kwargs)をチェック
+    if param_name in kwargs and kwargs[param_name] is not None:
+        return kwargs[param_name]
+
+    # 2. 環境変数をチェック
     if isinstance(env_names, str):
         env_names = [env_names]
     for env in env_names:
         val = os.environ.get(env)
         if val is not None:
             return val
-    if param_name in kwargs and kwargs[param_name] is not None:
-        return kwargs[param_name]
+
+    # 3. デフォルト値を返す
     return default
 
 def load_llm(provider: str, **kwargs):

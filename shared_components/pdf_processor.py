@@ -8,6 +8,9 @@ from typing import List, Optional
 
 class PDFProcessor:
     def __init__(self, config_path='config.ini'):
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(f"Configuration file not found at: {config_path}")
+
         self.config = configparser.ConfigParser()
         self.config.read(config_path)
         self.pdf_directory = self.config.get('pdf', 'DIRECTORY', fallback='./pdfs') # Assuming a new DIRECTORY option in config
@@ -15,15 +18,15 @@ class PDFProcessor:
         self.persist_directory = self.config.get('vectorstore', 'DIRECTORY', fallback='./vectorstore')
         self.embeddings = HuggingFaceEmbeddings(model_name=self.embedding_model_name)
 
-    def index_pdfs(self) -> Optional[Chroma]:
-        """
-        Loads all PDFs from the configured directory, splits them,
-        embeds them, and saves them to the vectorstore.
-        """
+    def get_chunks_from_pdfs(self) -> Optional[List[Document]]:
+        """Loads all PDFs and splits them into chunks, but does not save them."""
         all_chunks = []
         if not os.path.exists(self.pdf_directory):
             print(f"PDF directory not found: {self.pdf_directory}")
-            return None # Or raise an error
+            # Raise a more specific error
+            raise FileNotFoundError(f"PDF directory not found at: {self.pdf_directory}")
+
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 
         for filename in os.listdir(self.pdf_directory):
             if filename.endswith(".pdf"):
@@ -32,24 +35,42 @@ class PDFProcessor:
                 try:
                     loader = PyPDFLoader(pdf_path)
                     docs = loader.load()
-                    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
                     chunks = splitter.split_documents(docs)
                     all_chunks.extend(chunks)
                     print(f"Processed {len(chunks)} chunks from {filename}")
                 except Exception as e:
                     print(f"Error processing {filename}: {e}")
-                    # Decide how to handle errors - skip or stop? Skipping for now.
                     continue
 
         if not all_chunks:
-            print("No PDF documents found or processed.")
+            print("No text could be extracted from the PDFs.")
+
+        return all_chunks
+
+    def create_vectorstore_from_chunks(self, chunks: List[Document], persist_directory: str) -> Optional[Chroma]:
+        """Creates and saves a vectorstore from a list of chunks."""
+        if not chunks:
+            print("No chunks provided to create vectorstore.")
             return None
 
-        print(f"Creating vectorstore with {len(all_chunks)} chunks...")
-        # This will overwrite the existing vectorstore if it exists
-        store = Chroma.from_documents(all_chunks, self.embeddings, persist_directory=self.persist_directory)
+        print(f"Creating vectorstore with {len(chunks)} chunks at {persist_directory}...")
+        store = Chroma.from_documents(chunks, self.embeddings, persist_directory=persist_directory)
         print("Vectorstore created.")
         return store
+
+    def index_pdfs(self) -> Optional[Chroma]:
+        """
+        A convenience method that gets chunks from PDFs and creates a vectorstore
+        at the default persist_directory.
+        """
+        try:
+            chunks = self.get_chunks_from_pdfs()
+            if not chunks:
+                return None
+            return self.create_vectorstore_from_chunks(chunks, self.persist_directory)
+        except FileNotFoundError as e:
+            print(e)
+            return None
 
     def load_vectorstore(self) -> Optional[Chroma]:
         """

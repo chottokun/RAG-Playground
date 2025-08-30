@@ -1,41 +1,29 @@
 import os
 import streamlit as st
 import configparser
-import streamlit as st
-from langchain_ollama import OllamaLLM
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+import re
+import sys
+
+# プロジェクトルートをパスに追加
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(project_root)
+
+# 共通コンポーネントとLangChainの必要なモジュールをインポート
+from shared_components.model_loader.load_llm import load_llm
+from shared_components.pdf_processor import PDFProcessor
 from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 
 # ---------- Configurations ----------
+CONFIG_PATH = 'DynamicRag/config.ini'
 config = configparser.ConfigParser()
-config.read('config.ini')
-OLLAMA_BASE_URL = config.get('ollama', 'BASE_URL', fallback='http://localhost:11434')
-EMBEDDING_MODEL = config.get('embedding', 'MODEL', fallback='intfloat/multilingual-e5-small')
-LLM_MODEL = config.get('llm', 'MODEL', fallback='gemma3:4b-it-qat')
-PERSIST_DIR = config.get('vectorstore', 'DIRECTORY', fallback='./vectorstore')
-PDF_PATH = config.get('pdf', 'PATH', fallback='2502.01142v1.pdf')
+config.read(CONFIG_PATH)
+
 TOP_N = 20  # initial retrieval count
 
-# ---------- Streamlit App: Load & Index ----------
-@st.cache_resource
-def load_vectorstore(pdf_path: str):
-    loader = PyPDFLoader(pdf_path)
-    docs = loader.load()
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    chunks = splitter.split_documents(docs)
-    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
-    vectordb = Chroma.from_documents(chunks, embeddings, persist_directory=PERSIST_DIR)
-    return vectordb, chunks
-
-# ---------- Prompt: Dynamic Reranker (Table 11) ----------
+# ---------- Prompts ----------
 RERANKER_PROMPT = PromptTemplate(
     input_variables=["query", "docs_list"],
-    template="""
-You are an expert at dynamically generating document identifiers to answer a given query.
+    template="""You are an expert at dynamically generating document identifiers to answer a given query.
 I will provide you with a set of documents, each uniquely identified by a number within square brackets, e.g., [1], [2], etc.
 Your task is to identify and generate only the identifiers of the documents that contain sufficient information to answer the query.
 Stop generating identifiers as soon as the selected documents collectively provide enough information to answer the query.
@@ -49,12 +37,9 @@ Retrieved Content:
 """
 )
 
-# ---------- Prompt: Retrieval-based Generator (Table 12) ----------
 GENERATOR_PROMPT = PromptTemplate(
     input_variables=["question", "context"],
-    template="""
-You are an intelligent assistant that uses retrieved knowledge to answer user queries accurately and concisely.
-
+    template="""You are an intelligent assistant that uses retrieved knowledge to answer user queries accurately and concisely.
 Use the provided [Retrieved Content] to generate responses.
 If the Retrieved Content is None, generate an answer based on your own knowledge.
 If the information is insufficient or you don't know the answer, state, "I cannot fully answer based on the available information. Please provide more details."
@@ -72,46 +57,70 @@ Answer:"""
 
 # ---------- Streamlit UI ----------
 def main():
-    st.title("DynamicRAG Demo with Streamlit")
-    vectordb, chunks = load_vectorstore(PDF_PATH)
-    llm = OllamaLLM(model=LLM_MODEL, base_url=OLLAMA_BASE_URL, temperature=0.2)
+    st.title("DynamicRAG Demo")
+
+    # PDFProcessorを使用してVectorstoreを準備
+    pdf_processor = PDFProcessor(config_path=CONFIG_PATH)
+
+    st.sidebar.header("Indexing")
+    if st.sidebar.button("Index PDF"):
+        with st.spinner("Indexing documents..."):
+            store = pdf_processor.index_pdfs()
+            if store:
+                st.sidebar.success("Indexing completed!")
+            else:
+                st.sidebar.error("Indexing failed. Check logs for details.")
+
+    # Vectorstoreのロード
+    vectorstore = pdf_processor.load_vectorstore()
+    if vectorstore is None:
+        st.warning("Vectorstore not found. Please index PDFs first.")
+        st.stop()
+
+    # LLMのロード
+    llm = load_llm(
+        provider=config.get('LLM', 'PROVIDER'),
+        model=config.get('LLM', 'MODEL'),
+        base_url=config.get('ollama', 'BASE_URL', fallback=None),
+        temperature=0.2
+    )
 
     question = st.text_input("Enter your question:")
     if st.button("Ask") and question:
         with st.spinner("Retrieving top documents..."):
-            candidates = vectordb.similarity_search(question, k=TOP_N)
-            docs_text = [doc.page_content for doc in candidates]
+            candidates = vectorstore.similarity_search(question, k=TOP_N)
 
-        # Format docs for reranker
-        docs_list = "\n".join(f"[{i+1}] Title: {c.metadata.get('title','')} Content: {c.page_content}" for i, c in enumerate(candidates))
-        reranker_chain = RERANKER_PROMPT | llm
-        rerank_output = reranker_chain.invoke({"query": question, "docs_list": docs_list})
+        docs_list = "\n".join(f"[{i+1}] Content: {c.page_content}" for i, c in enumerate(candidates))
 
-        # Parse identifiers
+        with st.spinner("Reranking documents..."):
+            reranker_chain = RERANKER_PROMPT | llm
+            rerank_output = reranker_chain.invoke({"query": question, "docs_list": docs_list})
+
         try:
             if rerank_output.strip().lower() == 'none':
                 indices = []
             else:
-                import re
-                indices = [int(num) for num in re.findall(r"\[(\d+)\]", rerank_output)]
+                indices = [int(num) for num in re.findall(r'\[(\d+)\]', rerank_output)]
         except Exception:
-            st.error("Failed to parse reranker output: " + str(rerank_output))
-            return
+            st.error(f"Failed to parse reranker output: {rerank_output}")
+            st.stop()
 
-        # Select documents
-        selected = [docs_text[i-1] for i in indices if 1 <= i <= len(docs_text)]
+        selected_docs = [candidates[i-1] for i in indices if 1 <= i <= len(candidates)]
+
         st.subheader("Selected & Ordered Documents")
-        if not selected:
+        if not selected_docs:
             st.write("No retrieved content needed; using LLM knowledge.")
         else:
-            for idx, doc in zip(indices, selected):
-                st.markdown(f"**Doc {idx}:** {doc[:300]}...\n")
+            for idx, doc in zip(indices, selected_docs):
+                with st.expander(f"Document {idx}"):
+                    st.write(doc.page_content)
 
-        # Generate final answer
-        context = "\n\n".join(selected) if selected else None
-        gen_chain = GENERATOR_PROMPT | llm
+        context = "\n\n".join([doc.page_content for doc in selected_docs]) if selected_docs else "None"
+
         with st.spinner("Generating answer..."):
+            gen_chain = GENERATOR_PROMPT | llm
             answer = gen_chain.invoke({"question": question, "context": context})
+
         st.subheader("Answer")
         st.write(answer)
 

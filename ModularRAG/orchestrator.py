@@ -7,8 +7,8 @@ from typing import Dict, Any, List
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(project_root)
 
-from model_loader.load_llm import load_llm
-from components.pdf_processor import PDFProcessor
+from shared_components.model_loader.load_llm import load_llm
+from shared_components.pdf_processor import PDFProcessor
 from ModularRAG.evaluator import evaluate_query_and_history, EvaluationResult # Import from our new evaluator module
 
 # Import shared types
