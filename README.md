@@ -14,6 +14,10 @@
 
 ---
 
+## アーキテクチャと開発ガイド
+
+新しいRAG実装の追加方法、共通コンポーネントの使い方、テストの書き方など、開発に関する詳細は [Architecture.md](Architecture.md) を参照してください。
+
 ## ディレクトリ構成
 
 ```
@@ -109,6 +113,7 @@ pytest tests/test_deeprag.py
 - langchain-huggingface
 - langchain_community
 - chromadb
+- sentence-transformers
 - torch, configparser など
 - **pytest** (開発用)
 

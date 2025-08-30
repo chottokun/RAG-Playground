@@ -55,6 +55,7 @@ MODEL = intfloat/multilingual-e5-small
 
 [vectorstore]
 DIRECTORY = ./vectorstore_mynewrag
+TOP_K = 5
 
 [pdf]
 DIRECTORY = ./pdfs
@@ -67,15 +68,19 @@ Define your main orchestrator class. This class will use the shared components.
 ```python
 # MyNewRAG/orchestrator.py
 # (Import necessary components)
+import configparser
 
 class MyNewRAGOrchestrator:
-    def __init__(self, llm, vectorstore):
+    def __init__(self, llm, vectorstore, config: configparser.ConfigParser):
         self.llm = llm
         self.vectorstore = vectorstore
+        self.config = config
+        self.top_k = self.config.getint('vectorstore', 'TOP_K', fallback=5)
         # Initialize your components here
 
     def run(self, query: str):
         # 1. Use self.vectorstore.similarity_search(...)
+        docs = self.vectorstore.similarity_search(query, k=self.top_k)
         # 2. Call your custom components
         # 3. Generate and return the final answer
         pass
@@ -169,7 +174,7 @@ Handles PDF loading, chunking, and vectorstore creation/loading.
 
 -   **Initialization**: `PDFProcessor(config_path='path/to/your/config.ini')`
     - It reads `[vectorstore]` and `[pdf]` sections from your config.
-    - **CRITICAL**: You **must** provide the correct path to your RAG-specific `config.ini`. If the path is incorrect, the processor will not raise an error but will use fallback default values, which can lead to hard-to-debug issues like using the wrong vectorstore directory.
+    - **CRITICAL**: You **must** provide the correct path to your RAG-specific `config.ini`. If the path is incorrect, the processor will raise a `FileNotFoundError`.
 -   **Core Methods**:
     -   `.get_chunks_from_pdfs() -> List[Document]`: Reads PDFs from the directory specified in `config.ini` and returns a list of document chunks.
     -   `.create_vectorstore_from_chunks(chunks, persist_directory)`: Creates a vectorstore from a list of chunks at the specified directory.
